@@ -1,0 +1,41 @@
+name: Sync Pinterest recipe pins
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run daily at 06:20 UTC.
+    - cron: "20 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch all board pins
+        env:
+          PINTEREST_APP_ID: ${{ secrets.PINTEREST_APP_ID }}
+          PINTEREST_APP_SECRET: ${{ secrets.PINTEREST_APP_SECRET }}
+          PINTEREST_REFRESH_TOKEN: ${{ secrets.PINTEREST_REFRESH_TOKEN }}
+          PINTEREST_BOARD_ID: ${{ secrets.PINTEREST_BOARD_ID }}
+        run: python scripts/sync_pinterest.py
+
+      - name: Save private-use catalog as a downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinterest-recipe-catalog
+          path: |
+            output/pinterest_pins.csv
+            output/pinterest_pins.json
+          retention-days: 14
+          if-no-files-found: error
